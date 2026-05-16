@@ -1,7 +1,7 @@
 import unittest
 
-from octane_robot_plugin.config import OctaneConfig
-from octane_robot_plugin.octane_client import OctaneClient
+from octane_robot_plugin_embiti.config import OctaneConfig
+from octane_robot_plugin_embiti.octane_client import OctaneClient
 
 
 class FakeResponse:

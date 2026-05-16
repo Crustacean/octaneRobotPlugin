@@ -2,8 +2,8 @@ import io
 from contextlib import redirect_stdout
 import unittest
 
-from octane_robot_plugin.config import OctaneConfig
-from octane_robot_plugin.listener import OctaneRobotListener
+from octane_robot_plugin_embiti.config import OctaneConfig
+from octane_robot_plugin_embiti.listener import OctaneRobotListener
 
 
 class Obj:

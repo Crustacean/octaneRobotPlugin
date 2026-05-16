@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "octane-robot-plugin"
+name = "octane-robot-plugin-embiti"
 version = "0.1.0"
 description = "Robot Framework listener that syncs tagged test results to ALM Octane suite-run child runs."
 readme = "README.md"

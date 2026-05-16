@@ -1,6 +1,6 @@
 import unittest
 
-from octane_robot_plugin.tags import (
+from octane_robot_plugin_embiti.tags import (
     extract_robot_octane_tags,
     extract_user_tag_names,
     normalize_tag,

@@ -1,7 +1,7 @@
 import unittest
 
-from octane_robot_plugin.errors import DuplicateOctaneTagError
-from octane_robot_plugin.mapping import build_suite_run_mapping
+from octane_robot_plugin_embiti.errors import DuplicateOctaneTagError
+from octane_robot_plugin_embiti.mapping import build_suite_run_mapping
 
 
 class FakeMappingClient:

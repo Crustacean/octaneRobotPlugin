@@ -1,4 +1,4 @@
-# Octane Robot Plugin
+# Octane Robot Plugin Embiti
 
 Robot Framework listener that updates ALM Octane child runs for tests in an existing suite run.
 
@@ -49,13 +49,13 @@ python3 -m pip install -e .
 ## Run Robot with the listener
 
 ```bash
-robot --listener octane_robot_plugin.listener.OctaneRobotListener path/to/tests
+robot --listener octane_robot_plugin_embiti.listener.OctaneRobotListener path/to/tests
 ```
 
 To pass the suite run ID as a listener argument instead of an environment variable:
 
 ```bash
-robot --listener octane_robot_plugin.listener.OctaneRobotListener:123456 path/to/tests
+robot --listener octane_robot_plugin_embiti.listener.OctaneRobotListener:123456 path/to/tests
 ```
 
 ## Local tests
