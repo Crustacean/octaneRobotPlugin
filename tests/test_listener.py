@@ -3,6 +3,7 @@ from contextlib import redirect_stdout
 import unittest
 
 from octane_robot_plugin_embiti.config import OctaneConfig
+from octane_robot_plugin_embiti.errors import OctaneApiError
 from octane_robot_plugin_embiti.listener import OctaneRobotListener
 
 
@@ -40,6 +41,18 @@ class FakeListenerClient:
 
     def update_run_status(self, child_run_id, status_name, message=None):
         self.updates.append((child_run_id, status_name, message))
+
+
+class FailsOnceListenerClient(FakeListenerClient):
+    def __init__(self):
+        super().__init__()
+        self.failures_left = 1
+
+    def get_suite_child_run_ids(self, suite_run_id):
+        if self.failures_left:
+            self.failures_left -= 1
+            raise OctaneApiError("temporary discovery failure")
+        return super().get_suite_child_run_ids(suite_run_id)
 
 
 def config():
@@ -122,6 +135,18 @@ class ListenerTests(unittest.TestCase):
         self.assertIn("Robot tests with no octane_tag: 1", summary)
         self.assertIn("Octane child runs left for manual update: 1", summary)
         self.assertIn("11: Manual / manual child", summary)
+
+    def test_failed_start_suite_does_not_mark_listener_started(self):
+        client = FailsOnceListenerClient()
+        listener = OctaneRobotListener(config=config(), client=client)
+
+        with self.assertRaises(OctaneApiError):
+            listener.start_suite(Obj(), Obj())
+
+        data = Obj(longname="Suite.Login", tags=["octane_tag:LOGIN_001"])
+        listener.start_test(data, Obj())
+
+        self.assertEqual(client.updates, [("10", "In Progress", None)])
 
 
 if __name__ == "__main__":

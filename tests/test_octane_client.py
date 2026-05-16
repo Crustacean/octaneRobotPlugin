@@ -29,7 +29,6 @@ class FakeSession:
             return FakeResponse(
                 payload={
                     "id": "10",
-                    "type": "run_automated",
                     "client_lock_stamp": 7,
                     "description": "Existing description",
                 }
@@ -81,10 +80,15 @@ class OctaneClientTests(unittest.TestCase):
         ][0]
         body = put_request[2]["json"]
         self.assertEqual(body["id"], "10")
-        self.assertEqual(body["type"], "run_automated")
+        self.assertEqual(body["type"], "run")
         self.assertEqual(body["client_lock_stamp"], 7)
         self.assertEqual(body["native_status"], {"type": "list_node", "id": "status_failed"})
         self.assertIn("Expected true", body["description"])
+
+        run_get = [
+            item for item in session.requests if item[0] == "GET" and item[1].endswith("/runs/10")
+        ][0]
+        self.assertNotIn("type", run_get[2]["params"]["fields"].split(","))
 
 
 if __name__ == "__main__":

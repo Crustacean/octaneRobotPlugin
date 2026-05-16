@@ -76,7 +76,7 @@ class OctaneClient:
         payload = self._request(
             "GET",
             f"runs/{run_id}",
-            params={"fields": fields or "id,name,type,test,client_lock_stamp,native_status"},
+            params={"fields": fields or "id,name,test,client_lock_stamp,native_status"},
         )
         return self._extract_entity(payload)
 
@@ -103,11 +103,11 @@ class OctaneClient:
     ) -> None:
         run = self.get_run(
             child_run_id,
-            fields="id,type,client_lock_stamp,native_status,description",
+            fields="id,client_lock_stamp,native_status,description",
         )
         status_node = self.resolve_status(status_name)
         body: dict[str, Any] = {
-            "type": run.get("type") or "run",
+            "type": "run",
             "id": str(run.get("id") or child_run_id),
             "client_lock_stamp": run.get("client_lock_stamp"),
             "native_status": status_node,

@@ -46,11 +46,11 @@ class OctaneRobotListener:
     def start_suite(self, data: Any, result: Any) -> None:
         if self._started:
             return
-        self._started = True
         self._log_info(
             f"Discovering Octane child runs for suite run {self.config.suite_run_id}"
         )
         self.mapping = build_suite_run_mapping(self.client, self.config.suite_run_id)
+        self._started = True
         self._log_info(
             "Discovered "
             f"{len(self.mapping.child_runs)} child runs and "
