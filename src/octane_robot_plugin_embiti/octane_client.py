@@ -149,7 +149,7 @@ class OctaneClient:
             "list_nodes",
             params={
                 "fields": "id,name,logical_name",
-                "query": f'{field} EQ ^{value}^',
+                "query": f'"{field}" EQ ^{value}^',
             },
         )
         data = payload.get("data") if isinstance(payload, dict) else None
