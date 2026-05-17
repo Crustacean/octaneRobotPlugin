@@ -105,7 +105,7 @@ class OctaneClientTests(unittest.TestCase):
         self.assertNotIn("type", list_node_get[2]["params"]["fields"].split(","))
         self.assertEqual(
             list_node_get[2]["params"]["query"],
-            '"logical_name" EQ ^list_node.run_native_status.failed^',
+            '"logical_name EQ ^list_node.run_native_status.failed^"',
         )
 
     def test_get_run_test_does_not_request_unsupported_test_type_field(self):
