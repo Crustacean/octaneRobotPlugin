@@ -91,7 +91,7 @@ class OctaneClient:
         payload = self._request(
             "GET",
             f"{entity_path}/{test_id}",
-            params={"fields": "id,name,type,user_tags"},
+            params={"fields": "id,name,user_tags"},
         )
         return self._extract_entity(payload)
 
@@ -148,7 +148,7 @@ class OctaneClient:
             "GET",
             "list_nodes",
             params={
-                "fields": "id,name,type,logical_name",
+                "fields": "id,name,logical_name",
                 "query": f'{field} EQ ^{value}^',
             },
         )

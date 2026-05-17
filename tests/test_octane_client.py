@@ -39,7 +39,6 @@ class FakeSession:
                     "data": [
                         {
                             "id": "status_failed",
-                            "type": "list_node",
                             "name": "Failed",
                             "logical_name": "list_node.run_native_status.failed",
                         }
@@ -48,6 +47,14 @@ class FakeSession:
             )
         if method == "PUT" and url.endswith("/runs/10"):
             return FakeResponse(payload={})
+        if method == "GET" and url.endswith("/tests/45549"):
+            return FakeResponse(
+                payload={
+                    "id": "45549",
+                    "name": "Login",
+                    "user_tags": {"data": [{"name": "LOGIN_001"}]},
+                }
+            )
         raise AssertionError(f"Unexpected request: {method} {url}")
 
 
@@ -89,6 +96,27 @@ class OctaneClientTests(unittest.TestCase):
             item for item in session.requests if item[0] == "GET" and item[1].endswith("/runs/10")
         ][0]
         self.assertNotIn("type", run_get[2]["params"]["fields"].split(","))
+
+        list_node_get = [
+            item
+            for item in session.requests
+            if item[0] == "GET" and item[1].endswith("/list_nodes")
+        ][0]
+        self.assertNotIn("type", list_node_get[2]["params"]["fields"].split(","))
+
+    def test_get_run_test_does_not_request_unsupported_test_type_field(self):
+        session = FakeSession()
+        client = OctaneClient(config(), session=session, max_retries=0)
+
+        test = client.get_run_test({"test": {"id": "45549"}})
+
+        self.assertEqual(test["name"], "Login")
+        test_get = [
+            item
+            for item in session.requests
+            if item[0] == "GET" and item[1].endswith("/tests/45549")
+        ][0]
+        self.assertNotIn("type", test_get[2]["params"]["fields"].split(","))
 
 
 if __name__ == "__main__":
