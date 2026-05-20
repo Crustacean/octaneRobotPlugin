@@ -48,6 +48,8 @@ class FakeSession:
             )
         if method == "PUT" and url.endswith("/automated_runs/10"):
             return FakeResponse(payload={})
+        if method == "POST" and url.endswith("/test-results"):
+            return FakeResponse(payload={"status": "queued", "id": 1001})
         if method == "GET" and url.endswith("/tests/45549"):
             return FakeResponse(
                 payload={
@@ -139,6 +141,22 @@ class OctaneClientTests(unittest.TestCase):
             if item[0] == "GET" and item[1].endswith("/tests/45549")
         ][0]
         self.assertNotIn("type", test_get[2]["params"]["fields"].split(","))
+
+    def test_submit_test_results_posts_xml_payload(self):
+        session = FakeSession()
+        client = OctaneClient(config(), session=session, max_retries=0)
+
+        response = client.submit_test_results("<test_result/>", skip_errors=True)
+
+        self.assertEqual(response, {"status": "queued", "id": 1001})
+        post_request = [
+            item
+            for item in session.requests
+            if item[0] == "POST" and item[1].endswith("/test-results")
+        ][0]
+        self.assertEqual(post_request[2]["params"], {"skip-errors": "true"})
+        self.assertEqual(post_request[2]["headers"], {"Content-Type": "application/xml"})
+        self.assertEqual(post_request[2]["data"], b"<test_result/>")
 
 
 if __name__ == "__main__":

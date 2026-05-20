@@ -124,6 +124,19 @@ class OctaneClient:
         update_collection = self._run_update_collection_path(run_subtype)
         self._request("PUT", f"{update_collection}/{child_run_id}", json=body)
 
+    def submit_test_results(self, xml_payload: str, skip_errors: bool = True) -> dict[str, Any]:
+        """Submit automated test results XML to Octane's async ingestion API."""
+        return self._request(
+            "POST",
+            "test-results",
+            params={"skip-errors": str(skip_errors).lower()},
+            data=xml_payload.encode("utf-8"),
+            headers={"Content-Type": "application/xml"},
+        )
+
+    def get_test_results_task(self, task_id: str) -> dict[str, Any]:
+        return self._request("GET", f"test-results/{task_id}")
+
     def resolve_status(self, status_name: str) -> dict[str, Any]:
         cached = self._status_cache.get(status_name)
         if cached:
