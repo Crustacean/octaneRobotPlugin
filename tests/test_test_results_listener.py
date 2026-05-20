@@ -67,7 +67,7 @@ class TestResultsListenerTests(unittest.TestCase):
         listener.end_test(data, Obj(status="PASS", message="", elapsedtime=250))
 
         with redirect_stdout(io.StringIO()) as output:
-            listener.close()
+            listener.end_suite(Obj(), Obj())
 
         self.assertIn("Submitted 1 Robot test results", output.getvalue())
         self.assertEqual(len(client.submissions), 1)
@@ -79,6 +79,37 @@ class TestResultsListenerTests(unittest.TestCase):
         self.assertEqual(run.attrib["status"], "Passed")
         self.assertEqual(run.attrib["duration"], "250")
         self.assertEqual(run.attrib["external_test_id"], "LOGIN_001")
+
+    def test_close_does_not_submit_twice_after_root_suite_end(self):
+        client = FakeTestResultsClient()
+        listener = OctaneTestResultsListener(
+            client=client,
+            config=config(),
+            options=TestResultsOptions(),
+        )
+        data = Obj(longname="Payments.Login", name="Login", tags=[])
+
+        listener.start_test(data, Obj())
+        listener.end_test(data, Obj(status="PASS", message="", elapsedtime=250))
+        listener.end_suite(Obj(), Obj())
+        listener.close()
+
+        self.assertEqual(len(client.submissions), 1)
+
+    def test_child_suite_end_does_not_submit(self):
+        client = FakeTestResultsClient()
+        listener = OctaneTestResultsListener(
+            client=client,
+            config=config(),
+            options=TestResultsOptions(),
+        )
+        data = Obj(longname="Payments.Login", name="Login", tags=[])
+
+        listener.start_test(data, Obj())
+        listener.end_test(data, Obj(status="PASS", message="", elapsedtime=250))
+        listener.end_suite(Obj(parent=Obj()), Obj())
+
+        self.assertEqual(client.submissions, [])
 
 
 if __name__ == "__main__":
