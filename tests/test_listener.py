@@ -21,8 +21,18 @@ class FakeListenerClient:
 
     def get_run(self, run_id, fields=None):
         return {
-            "10": {"id": "10", "name": "login child", "test": {"id": "T1"}},
-            "11": {"id": "11", "name": "manual child", "test": {"id": "T2"}},
+            "10": {
+                "id": "10",
+                "name": "login child",
+                "subtype": "run_automated",
+                "test": {"id": "T1"},
+            },
+            "11": {
+                "id": "11",
+                "name": "manual child",
+                "subtype": "run_manual",
+                "test": {"id": "T2"},
+            },
         }[run_id]
 
     def get_run_test(self, run):
@@ -67,6 +77,18 @@ def config():
 
 
 class ListenerTests(unittest.TestCase):
+    def test_startup_prints_version_before_client_id(self):
+        client = FakeListenerClient()
+        listener = OctaneRobotListener(config=config(), client=client)
+
+        with redirect_stdout(io.StringIO()) as output:
+            listener.start_suite(Obj(), Obj())
+
+        text = output.getvalue()
+        version_index = text.index("Octane updater version: v1.0.0")
+        client_index = text.index("Using Octane client ID: client")
+        self.assertLess(version_index, client_index)
+
     def test_matched_test_updates_in_progress_and_final_status(self):
         client = FakeListenerClient()
         listener = OctaneRobotListener(config=config(), client=client)
@@ -116,6 +138,21 @@ class ListenerTests(unittest.TestCase):
 
         self.assertEqual(client.updates, [])
         self.assertIn("multiple octane_tag", output.getvalue())
+
+    def test_manual_octane_run_match_warns_and_does_not_update(self):
+        client = FakeListenerClient()
+        listener = OctaneRobotListener(config=config(), client=client)
+        data = Obj(longname="Suite.Manual", tags=["octane_tag:MANUAL_001"])
+
+        with redirect_stdout(io.StringIO()) as output:
+            listener.start_test(data, Obj())
+            listener.end_test(data, Obj(status="PASS", message=""))
+            listener.close()
+
+        self.assertEqual(client.updates, [])
+        text = output.getvalue()
+        self.assertIn("only updates automated run child runs", text)
+        self.assertIn("matched Octane runs skipped as non-automated: 1", text)
 
     def test_close_prints_reconciliation_summary(self):
         client = FakeListenerClient()

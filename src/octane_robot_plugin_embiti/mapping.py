@@ -12,9 +12,18 @@ from .tags import extract_user_tag_names, normalize_tag
 class ChildRunRecord:
     child_run_id: str
     child_run_name: str = ""
+    run_subtype: str = ""
     test_id: str = ""
     test_name: str = ""
     tags: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def is_automated_run(self) -> bool:
+        return self.run_subtype.strip().lower() in {
+            "run_automated",
+            "automated_run",
+            "test_run",
+        }
 
     @property
     def display_name(self) -> str:
@@ -53,6 +62,7 @@ def build_suite_run_mapping(client: object, suite_run_id: str) -> SuiteRunMappin
         record = ChildRunRecord(
             child_run_id=str(child_run.get("id") or child_run_id),
             child_run_name=str(child_run.get("name") or ""),
+            run_subtype=str(child_run.get("subtype") or ""),
             test_id=str(test.get("id") or ""),
             test_name=str(test.get("name") or ""),
             tags=tags,

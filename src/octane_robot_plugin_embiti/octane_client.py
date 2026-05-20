@@ -76,7 +76,10 @@ class OctaneClient:
         payload = self._request(
             "GET",
             f"runs/{run_id}",
-            params={"fields": fields or "id,name,test,client_lock_stamp,native_status"},
+            params={
+                "fields": fields
+                or "id,name,subtype,test,client_lock_stamp,native_status"
+            },
         )
         return self._extract_entity(payload)
 
@@ -103,12 +106,11 @@ class OctaneClient:
     ) -> None:
         run = self.get_run(
             child_run_id,
-            fields="id,client_lock_stamp,native_status,description",
+            fields="id,subtype,client_lock_stamp,native_status,description",
         )
         status_node = self.resolve_status(status_name)
+        run_subtype = str(run.get("subtype") or "").strip()
         body: dict[str, Any] = {
-            "type": "run",
-            "id": str(run.get("id") or child_run_id),
             "client_lock_stamp": run.get("client_lock_stamp"),
             "native_status": status_node,
         }
@@ -119,7 +121,8 @@ class OctaneClient:
                 message,
             )
 
-        self._request("PUT", f"runs/{child_run_id}", json=body)
+        update_collection = self._run_update_collection_path(run_subtype)
+        self._request("PUT", f"{update_collection}/{child_run_id}", json=body)
 
     def resolve_status(self, status_name: str) -> dict[str, Any]:
         cached = self._status_cache.get(status_name)
@@ -249,6 +252,17 @@ class OctaneClient:
         if entity_type.endswith("s"):
             return entity_type
         return f"{entity_type}s"
+
+    @staticmethod
+    def _run_update_collection_path(run_subtype: str) -> str:
+        normalized = run_subtype.strip().lower()
+        if normalized in {"run_automated", "automated_run", "test_run"}:
+            return "automated_runs"
+        if normalized in {"run_manual", "manual_run"}:
+            return "manual_runs"
+        if normalized in {"run_suite", "suite_run"}:
+            return "suite_run"
+        return "runs"
 
     @staticmethod
     def _append_robot_message(existing: str, status_name: str, message: str) -> str:
