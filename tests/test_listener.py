@@ -85,7 +85,7 @@ class ListenerTests(unittest.TestCase):
             listener.start_suite(Obj(), Obj())
 
         text = output.getvalue()
-        version_index = text.index("Octane updater version: v1.0.0")
+        version_index = text.index("Octane updater version: v1.0.1")
         client_index = text.index("Using Octane client ID: client")
         self.assertLess(version_index, client_index)
 
