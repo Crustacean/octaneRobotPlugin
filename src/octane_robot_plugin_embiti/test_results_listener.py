@@ -39,6 +39,7 @@ class OctaneTestResultsListener:
         self._starts: dict[str, tuple[float, int]] = {}
         self._results: list[RobotTestResult] = []
         self._started = False
+        self._submitted = False
 
     def start_suite(self, data: Any, result: Any) -> None:
         if self._started:
@@ -79,7 +80,17 @@ class OctaneTestResultsListener:
             )
         )
 
+    def end_suite(self, data: Any, result: Any) -> None:
+        if self._is_root_suite(data, result):
+            self._submit_results()
+
     def close(self) -> None:
+        self._submit_results()
+
+    def _submit_results(self) -> None:
+        if self._submitted:
+            return
+        self._submitted = True
         if not self._results:
             self._log_warn("No Robot test results collected; nothing sent to Octane")
             return
@@ -125,6 +136,14 @@ class OctaneTestResultsListener:
         if callable(total_seconds):
             return int(total_seconds() * 1000)
         return int((time.monotonic() - started_monotonic) * 1000)
+
+    @staticmethod
+    def _is_root_suite(data: Any, result: Any) -> bool:
+        for source in (data, result):
+            parent = getattr(source, "parent", None)
+            if parent is not None:
+                return False
+        return True
 
     @staticmethod
     def _external_test_id(data: Any) -> str:
