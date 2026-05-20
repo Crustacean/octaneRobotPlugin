@@ -29,6 +29,7 @@ class FakeSession:
             return FakeResponse(
                 payload={
                     "id": "10",
+                    "subtype": "run_automated",
                     "client_lock_stamp": 7,
                     "description": "Existing description",
                 }
@@ -45,8 +46,10 @@ class FakeSession:
                     ]
                 }
             )
-        if method == "PUT" and url.endswith("/runs/10"):
+        if method == "PUT" and url.endswith("/automated_runs/10"):
             return FakeResponse(payload={})
+        if method == "POST" and url.endswith("/test-results"):
+            return FakeResponse(payload={"status": "queued", "id": 1001})
         if method == "GET" and url.endswith("/tests/45549"):
             return FakeResponse(
                 payload={
@@ -75,6 +78,21 @@ class OctaneClientTests(unittest.TestCase):
         self.assertEqual(OctaneClient._entity_collection_path("test_automated"), "tests")
         self.assertEqual(OctaneClient._entity_collection_path("gherkin_test"), "tests")
 
+    def test_run_subtypes_use_concrete_update_collection_paths(self):
+        self.assertEqual(
+            OctaneClient._run_update_collection_path("run_automated"),
+            "automated_runs",
+        )
+        self.assertEqual(
+            OctaneClient._run_update_collection_path("run_manual"),
+            "manual_runs",
+        )
+        self.assertEqual(
+            OctaneClient._run_update_collection_path("suite_run"),
+            "suite_run",
+        )
+        self.assertEqual(OctaneClient._run_update_collection_path(""), "runs")
+
     def test_update_run_status_uses_lock_stamp_and_resolved_status_node(self):
         session = FakeSession()
         client = OctaneClient(config(), session=session, max_retries=0)
@@ -83,11 +101,13 @@ class OctaneClientTests(unittest.TestCase):
 
         self.assertEqual(session.posts[0][0], "https://octane.example.com/authentication/sign_in")
         put_request = [
-            item for item in session.requests if item[0] == "PUT" and item[1].endswith("/runs/10")
+            item
+            for item in session.requests
+            if item[0] == "PUT" and item[1].endswith("/automated_runs/10")
         ][0]
         body = put_request[2]["json"]
-        self.assertEqual(body["id"], "10")
-        self.assertEqual(body["type"], "run")
+        self.assertNotIn("id", body)
+        self.assertNotIn("type", body)
         self.assertEqual(body["client_lock_stamp"], 7)
         self.assertEqual(body["native_status"], {"type": "list_node", "id": "status_failed"})
         self.assertIn("Expected true", body["description"])
@@ -121,6 +141,22 @@ class OctaneClientTests(unittest.TestCase):
             if item[0] == "GET" and item[1].endswith("/tests/45549")
         ][0]
         self.assertNotIn("type", test_get[2]["params"]["fields"].split(","))
+
+    def test_submit_test_results_posts_xml_payload(self):
+        session = FakeSession()
+        client = OctaneClient(config(), session=session, max_retries=0)
+
+        response = client.submit_test_results("<test_result/>", skip_errors=True)
+
+        self.assertEqual(response, {"status": "queued", "id": 1001})
+        post_request = [
+            item
+            for item in session.requests
+            if item[0] == "POST" and item[1].endswith("/test-results")
+        ][0]
+        self.assertEqual(post_request[2]["params"], {"skip-errors": "true"})
+        self.assertEqual(post_request[2]["headers"], {"Content-Type": "application/xml"})
+        self.assertEqual(post_request[2]["data"], b"<test_result/>")
 
 
 if __name__ == "__main__":

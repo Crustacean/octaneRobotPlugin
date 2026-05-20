@@ -23,8 +23,18 @@ class MappingTests(unittest.TestCase):
     def test_builds_case_insensitive_mapping_from_octane_user_tags(self):
         client = FakeMappingClient(
             runs={
-                "10": {"id": "10", "name": "child login", "test": {"id": "T1"}},
-                "11": {"id": "11", "name": "child checkout", "test": {"id": "T2"}},
+                "10": {
+                    "id": "10",
+                    "name": "child login",
+                    "subtype": "run_automated",
+                    "test": {"id": "T1"},
+                },
+                "11": {
+                    "id": "11",
+                    "name": "child checkout",
+                    "subtype": "run_manual",
+                    "test": {"id": "T2"},
+                },
             },
             tests={
                 "T1": {
@@ -44,6 +54,8 @@ class MappingTests(unittest.TestCase):
 
         self.assertEqual(mapping.find("login_001").child_run_id, "10")
         self.assertEqual(mapping.find("CHECKOUT_001").child_run_id, "11")
+        self.assertTrue(mapping.find("login_001").is_automated_run)
+        self.assertFalse(mapping.find("CHECKOUT_001").is_automated_run)
         self.assertIsNone(mapping.find("unknown"))
 
     def test_duplicate_octane_user_tag_fails(self):

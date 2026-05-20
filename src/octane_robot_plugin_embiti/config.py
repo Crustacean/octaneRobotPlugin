@@ -35,15 +35,21 @@ class OctaneConfig:
         return f"{self.base_url.rstrip('/')}/authentication/sign_in"
 
     @classmethod
-    def from_env(cls, suite_run_id: str | None = None) -> "OctaneConfig":
+    def from_env(
+        cls,
+        suite_run_id: str | None = None,
+        require_suite_run_id: bool = True,
+    ) -> "OctaneConfig":
         required = {
             "OCTANE_BASE_URL": os.getenv("OCTANE_BASE_URL"),
             "OCTANE_SHARED_SPACE_ID": os.getenv("OCTANE_SHARED_SPACE_ID"),
             "OCTANE_WORKSPACE_ID": os.getenv("OCTANE_WORKSPACE_ID"),
             "OCTANE_CLIENT_ID": os.getenv("OCTANE_CLIENT_ID"),
             "OCTANE_CLIENT_SECRET": os.getenv("OCTANE_CLIENT_SECRET"),
-            "OCTANE_SUITE_RUN_ID": suite_run_id or os.getenv("OCTANE_SUITE_RUN_ID"),
         }
+        resolved_suite_run_id = suite_run_id or os.getenv("OCTANE_SUITE_RUN_ID") or ""
+        if require_suite_run_id:
+            required["OCTANE_SUITE_RUN_ID"] = resolved_suite_run_id
         missing = [name for name, value in required.items() if not value]
         if missing:
             raise ConfigurationError(
@@ -65,7 +71,7 @@ class OctaneConfig:
             workspace_id=required["OCTANE_WORKSPACE_ID"],
             client_id=required["OCTANE_CLIENT_ID"],
             client_secret=required["OCTANE_CLIENT_SECRET"],
-            suite_run_id=required["OCTANE_SUITE_RUN_ID"],
+            suite_run_id=resolved_suite_run_id,
             timeout_seconds=timeout_seconds,
             verify_ssl=verify_ssl,
         )

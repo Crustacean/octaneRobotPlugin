@@ -8,6 +8,7 @@ from .config import OctaneConfig
 from .mapping import ChildRunRecord, SuiteRunMapping, build_suite_run_mapping
 from .octane_client import OctaneClient
 from .tags import extract_robot_octane_tags
+from .version import DISPLAY_VERSION
 
 try:  # pragma: no cover - Robot is not installed in the unit-test environment.
     from robot.api import logger as robot_logger
@@ -40,12 +41,21 @@ class OctaneRobotListener:
         self._updated_child_run_ids: set[str] = set()
         self._matched_tests: list[tuple[str, str, str]] = []
         self._unmatched_robot_tests: list[tuple[str, str]] = []
+        self._unsupported_octane_runs: list[tuple[str, str, str]] = []
         self._untagged_count = 0
         self._started = False
 
     def start_suite(self, data: Any, result: Any) -> None:
         if self._started:
             return
+        self._log_info(
+            f"Octane updater version: {DISPLAY_VERSION}",
+            also_console=True,
+        )
+        self._log_info(
+            f"Using Octane client ID: {self.config.client_id}",
+            also_console=True,
+        )
         self._log_info(
             f"Discovering Octane child runs for suite run {self.config.suite_run_id}"
         )
@@ -80,6 +90,18 @@ class OctaneRobotListener:
             self._log_warn(
                 f"No Octane child run match for Robot test {test_name!r} "
                 f"with tag {robot_tag!r}; leaving Octane unchanged"
+            )
+            return
+
+        if not record.is_automated_run:
+            self._unsupported_octane_runs.append(
+                (test_name, robot_tag, record.child_run_id)
+            )
+            self._log_warn(
+                f"Octane child run {record.child_run_id} for Robot test "
+                f"{test_name!r} is subtype {record.run_subtype or '<unknown>'!r}. "
+                "This plugin only updates automated run child runs; leaving Octane "
+                "unchanged for manual update."
             )
             return
 
@@ -125,12 +147,20 @@ class OctaneRobotListener:
             f"- matched Robot tests updated: {len(self._updated_child_run_ids)}",
             f"- Robot tests with no octane_tag: {self._untagged_count}",
             f"- Robot tests with no Octane match: {len(self._unmatched_robot_tests)}",
+            f"- matched Octane runs skipped as non-automated: "
+            f"{len(self._unsupported_octane_runs)}",
             f"- Octane child runs left for manual update: {len(manual_runs)}",
         ]
         if self._unmatched_robot_tests:
             lines.append("Unmatched Robot tests:")
             lines.extend(
                 f"- {test_name} [{tag}]" for test_name, tag in self._unmatched_robot_tests
+            )
+        if self._unsupported_octane_runs:
+            lines.append("Non-automated Octane runs skipped:")
+            lines.extend(
+                f"- {run_id}: {test_name} [{tag}]"
+                for test_name, tag, run_id in self._unsupported_octane_runs
             )
         if manual_runs:
             lines.append("Manual Octane child runs:")
